@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Kimani Form — Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0b0b0b;
+    --surface: #161616;
+    --border: rgba(255,255,255,0.09);
+    --text: #f0f0f0;
+    --muted: rgba(255,255,255,0.45);
+    --accent: #E68A82;
+    --green: #6FCF8A;
+    --radius: 10px;
+    --font: 'Inter', system-ui, sans-serif;
+  }
+  html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+
+  /* ── Layout ── */
+  .layout { display: grid; grid-template-columns: 1fr 420px; min-height: 100vh; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .preview-col { display: none; } }
+
+  /* ── Sidebar ── */
+  .editor-col { overflow-y: auto; padding: 28px 24px 60px; border-right: 1px solid var(--border); }
+  .editor-col h1 { font-size: 15px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+  .editor-col .sub { font-size: 12px; color: var(--muted); margin-bottom: 28px; }
+
+  /* ── Preview ── */
+  .preview-col { display: flex; align-items: center; justify-content: center; background: radial-gradient(900px 700px at 50% 0%, #1a1412, #0a0909); position: sticky; top: 0; height: 100vh; }
+  .preview-col iframe { width: 390px; height: 844px; border: none; border-radius: 48px; box-shadow: 0 40px 80px rgba(0,0,0,0.5); overflow: hidden; }
+
+  /* ── Section cards ── */
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; cursor: pointer; user-select: none; }
+  .section-head span { font-size: 13px; font-weight: 500; }
+  .section-head .step-num { font-size: 10px; color: var(--muted); background: rgba(255,255,255,0.06); padding: 2px 7px; border-radius: 99px; margin-right: 8px; }
+  .section-body { padding: 0 16px 16px; border-top: 1px solid var(--border); display: none; }
+  .section-body.open { display: block; padding-top: 14px; }
+  .chevron { color: var(--muted); font-size: 12px; transition: transform 200ms; }
+  .chevron.open { transform: rotate(180deg); }
+
+  /* ── Fields ── */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; letter-spacing: 0.3px; text-transform: uppercase; }
+  .field input, .field textarea {
+    width: 100%; background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 9px 12px; color: var(--text); font-family: var(--font); font-size: 13.5px;
+    outline: none; resize: vertical; transition: border-color 150ms;
+  }
+  .field input:focus, .field textarea:focus { border-color: rgba(255,255,255,0.3); }
+  .field textarea { min-height: 80px; line-height: 1.6; }
+  .field .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── Sub-section ── */
+  .sub-section { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 12px; margin-top: 10px; }
+  .sub-section > .sub-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 10px; margin-top: 28px; position: sticky; bottom: 0; background: var(--bg); padding: 16px 0 0; border-top: 1px solid var(--border); }
+  .btn { padding: 11px 20px; border-radius: var(--radius); font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; border: none; letter-spacing: 0.3px; transition: opacity 150ms; }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: var(--accent); color: #fff; flex: 1; }
+  .btn-secondary { background: rgba(255,255,255,0.07); color: var(--text); border: 1px solid var(--border); flex: 1; }
+  .btn-download { background: var(--green); color: #111; flex: 1.5; }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1e1e; border: 1px solid var(--border); border-radius: 99px; padding: 10px 20px; font-size: 13px; color: var(--text); opacity: 0; transition: all 300ms ease; pointer-events: none; white-space: nowrap; z-index: 999; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+</style>
+</head>
+<body>
+<script src="form-config.js"></script>
+
+<div class="layout">
+  <!-- Editor -->
+  <div class="editor-col">
+    <h1>Kimani · Form Editor</h1>
+    <p class="sub">Edit labels, options and texts. Click "Apply" to preview live, then "Download" to save.</p>
+
+    <div id="editor"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="resetChanges()">↺ Reset</button>
+      <button class="btn btn-primary" onclick="applyChanges()">▶ Apply & Preview</button>
+      <button class="btn btn-download" onclick="downloadConfig()">↓ Download config.js</button>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-col">
+    <iframe id="preview" src="index.html"></iframe>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Working copy of config ────────────────────────────────────────────────
+let cfg = JSON.parse(JSON.stringify(window.FORM_CONFIG));
+
+// ── Build editor UI ───────────────────────────────────────────────────────
+function buildEditor() {
+  const el = document.getElementById('editor');
+  el.innerHTML = '';
+
+  el.appendChild(makeSection('🏷️  Header', 'header', null, () => {
+    return `
+      ${field('Title', 'cfg.header.title', cfg.header.title)}
+      ${field('Subtitle', 'cfg.header.subtitle', cfg.header.subtitle, true)}
+      ${field('Back button text', 'cfg.header.backBtn', cfg.header.backBtn)}
+    `;
+  }));
+
+  el.appendChild(makeSection('✅  Final Screen', 'success', null, () => {
+    return `
+      ${field('Title', 'cfg.success.title', cfg.success.title)}
+      ${field('Line 1 (use {name} for first name)', 'cfg.success.line1', cfg.success.line1)}
+      ${field('Line 1 fallback (no name)', 'cfg.success.line1Fallback', cfg.success.line1Fallback)}
+      ${field('Line 2', 'cfg.success.line2', cfg.success.line2)}
+      ${field('Approval label', 'cfg.success.approvalLabel', cfg.success.approvalLabel)}
+    `;
+  }));
+
+  cfg.steps.forEach((step, i) => {
+    el.appendChild(makeSection(`Step ${i+1} · ${step.title}`, `step_${i}`, i, () => stepEditor(step, i)));
+  });
+}
+
+function makeSection(label, id, stepIdx, contentFn) {
+  const sec = document.createElement('div');
+  sec.className = 'section';
+  sec.innerHTML = `
+    <div class="section-head" onclick="toggleSection('${id}')">
+      <div style="display:flex;align-items:center">
+        ${stepIdx !== null ? `<span class="step-num">${stepIdx+1}</span>` : ''}
+        <span>${label}</span>
+      </div>
+      <span class="chevron" id="chev_${id}">▾</span>
+    </div>
+    <div class="section-body" id="body_${id}">${contentFn()}</div>
+  `;
+  return sec;
+}
+
+function toggleSection(id) {
+  const body = document.getElementById('body_' + id);
+  const chev = document.getElementById('chev_' + id);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+function field(label, path, value, multiline) {
+  const id = 'f_' + path.replace(/[^a-z0-9]/gi, '_');
+  const tag = multiline ? `<textarea id="${id}" data-path="${path}" rows="2">${esc(value||'')}</textarea>` : `<input id="${id}" data-path="${path}" type="text" value="${esc(value||'')}">`;
+  return `<div class="field"><label>${label}</label>${tag}</div>`;
+}
+
+function esc(v) { return String(v).replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function stepEditor(step, i) {
+  let html = field('Section title', `cfg.steps.${i}.title`, step.title);
+
+  // hint
+  if (step.hint !== undefined) html += field('Hint text', `cfg.steps.${i}.hint`, step.hint);
+
+  // simple text fields
+  if (step.label !== undefined) html += field('Label', `cfg.steps.${i}.label`, step.label);
+  if (step.placeholder !== undefined) html += field('Placeholder', `cfg.steps.${i}.placeholder`, step.placeholder);
+  if (step.placeholderMonth !== undefined) html += field('Month placeholder', `cfg.steps.${i}.placeholderMonth`, step.placeholderMonth);
+  if (step.placeholderDay !== undefined) html += field('Day placeholder', `cfg.steps.${i}.placeholderDay`, step.placeholderDay);
+  if (step.otherLabel !== undefined) html += field('"Other" field label', `cfg.steps.${i}.otherLabel`, step.otherLabel);
+  if (step.otherPlaceholder !== undefined) html += field('"Other" placeholder', `cfg.steps.${i}.otherPlaceholder`, step.otherPlaceholder);
+  if (step.usernamePlaceholder !== undefined) html += field('Username placeholder', `cfg.steps.${i}.usernamePlaceholder`, step.usernamePlaceholder);
+  if (step.otherPlatformLabel !== undefined) html += field('"Other" platform label', `cfg.steps.${i}.otherPlatformLabel`, step.otherPlatformLabel);
+  if (step.otherPlatformPlaceholder !== undefined) html += field('"Other" platform placeholder', `cfg.steps.${i}.otherPlatformPlaceholder`, step.otherPlatformPlaceholder);
+  if (step.btnUpload !== undefined) html += field('Upload button', `cfg.steps.${i}.btnUpload`, step.btnUpload);
+  if (step.btnChange !== undefined) html += field('Change button', `cfg.steps.${i}.btnChange`, step.btnChange);
+  if (step.meta !== undefined) html += field('Meta text', `cfg.steps.${i}.meta`, step.meta);
+
+  // simple options array (gender, ageGroup, country, expertise, social platforms)
+  if (step.options && typeof step.options[0] === 'string') {
+    const id = 'f_opts_' + i;
+    html += `<div class="field"><label>Options (one per line)</label>
+      <textarea id="${id}" data-path="cfg.steps.${i}.options" rows="${Math.min(step.options.length + 1, 12)}">${step.options.join('\n')}</textarea>
+      <div class="hint">Add, remove or reorder lines to change the options.</div>
+    </div>`;
+  }
+
+  // platforms array (social)
+  if (step.platforms) {
+    const id = 'f_plat_' + i;
+    html += `<div class="field"><label>Platforms (one per line)</label>
+      <textarea id="${id}" data-path="cfg.steps.${i}.platforms" rows="${step.platforms.length + 1}">${step.platforms.join('\n')}</textarea>
+    </div>`;
+  }
+
+  // work type options + sub-fields
+  if (step.options && typeof step.options[0] === 'object') {
+    html += `<div class="divider"></div><div class="sub-section"><div class="sub-label">Work type options</div>`;
+    step.options.forEach((opt, j) => {
+      html += field(`Option ${j+1} label`, `cfg.steps.${i}.options.${j}.label`, opt.label);
+    });
+    html += `</div>`;
+
+    // sub-fields
+    if (step.subFields) {
+      Object.entries(step.subFields).forEach(([status, fields]) => {
+        html += `<div class="sub-section" style="margin-top:10px"><div class="sub-label">Sub-fields for "${status}"</div>`;
+        fields.forEach((sf, j) => {
+          html += field(`Field ${j+1} label`, `cfg.steps.${i}.subFields.${status}.${j}.label`, sf.label);
+          html += field(`Field ${j+1} placeholder`, `cfg.steps.${i}.subFields.${status}.${j}.placeholder`, sf.placeholder);
+        });
+        html += `</div>`;
+      });
+    }
+  }
+
+  // name fields
+  if (step.fields) {
+    ['first','last'].forEach(k => {
+      const f2 = step.fields[k] || {};
+      html += `<div class="sub-section" style="margin-top:${k==='first'?'0':'10px'}"><div class="sub-label">${k === 'first' ? 'First name field' : 'Last name field'}</div>`;
+      html += field('Label', `cfg.steps.${i}.fields.${k}.label`, f2.label);
+      html += field('Hint', `cfg.steps.${i}.fields.${k}.hint`, f2.hint);
+      html += field('Placeholder', `cfg.steps.${i}.fields.${k}.placeholder`, f2.placeholder);
+      html += `</div>`;
+    });
+  }
+
+  return html;
+}
+
+// ── Collect all field values into cfg ─────────────────────────────────────
+function collectValues() {
+  document.querySelectorAll('[data-path]').forEach(el => {
+    const path = el.dataset.path;
+    let value = el.value;
+
+    // arrays come from textarea (one per line)
+    if (el.tagName === 'TEXTAREA' && (path.endsWith('.options') || path.endsWith('.platforms'))) {
+      value = value.split('\n').map(s => s.trim()).filter(Boolean);
+    }
+
+    setByPath(cfg, path.replace(/^cfg\./, ''), value);
+  });
+}
+
+function setByPath(obj, path, value) {
+  const parts = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const key = isNaN(parts[i]) ? parts[i] : parseInt(parts[i]);
+    if (cur[key] === undefined) cur[key] = isNaN(parts[i+1]) ? {} : [];
+    cur = cur[key];
+  }
+  const last = parts[parts.length - 1];
+  cur[isNaN(last) ? last : parseInt(last)] = value;
+}
+
+// ── Apply: push updated config to iframe ──────────────────────────────────
+function applyChanges() {
+  collectValues();
+  const iframe = document.getElementById('preview');
+  try {
+    iframe.contentWindow.FORM_CONFIG = JSON.parse(JSON.stringify(cfg));
+    // Trigger React re-render by reloading the iframe
+    iframe.contentWindow.location.reload();
+  } catch(e) {
+    iframe.src = iframe.src; // fallback reload
+  }
+  toast('✓ Applied — preview reloading…');
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────
+function resetChanges() {
+  cfg = JSON.parse(JSON.stringify(window.FORM_CONFIG));
+  buildEditor();
+  document.getElementById('preview').src = 'index.html';
+  toast('↺ Reset to original config');
+}
+
+// ── Download config.js ────────────────────────────────────────────────────
+function downloadConfig() {
+  collectValues();
+  const header = `// ─────────────────────────────────────────────────────────────────────────────
+//  KIMANI FORM CONFIG
+//  Edit this file to change any label, hint, option, or placeholder.
+//  No code knowledge required — just text.
+// ─────────────────────────────────────────────────────────────────────────────
+
+window.FORM_CONFIG = `;
+  const body = JSON.stringify(cfg, null, 2);
+  const content = header + body + ';\n';
+  const blob = new Blob([content], { type: 'application/javascript' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'form-config.js';
+  a.click();
+  toast('↓ form-config.js downloaded — upload it to GitHub to publish changes');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+buildEditor();
+</script>
+</body>
+</html>
