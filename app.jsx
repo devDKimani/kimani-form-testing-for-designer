@@ -1,6 +1,14 @@
 // Main Kimani registration flow app
 // Step titles come from form-config.js (window.FORM_CONFIG.steps[].title)
 
+// Allow admin preview to override config via localStorage
+;(function() {
+  try {
+    const override = localStorage.getItem('kimani_config_override');
+    if (override) window.FORM_CONFIG = JSON.parse(override);
+  } catch(e) {}
+})();
+
 const STEPS = [
   { key: 'name',       title: 'Your Name',        comp: 'StepName' },
   { key: 'gender',     title: 'Gender',            comp: 'StepGender' },

@@ -265,23 +265,19 @@ function setByPath(obj, path, value) {
   cur[isNaN(last) ? last : parseInt(last)] = value;
 }
 
-// ── Apply: push updated config to iframe ──────────────────────────────────
+// ── Apply: save config to localStorage then reload iframe ─────────────────
 function applyChanges() {
   collectValues();
+  localStorage.setItem('kimani_config_override', JSON.stringify(cfg));
   const iframe = document.getElementById('preview');
-  try {
-    iframe.contentWindow.FORM_CONFIG = JSON.parse(JSON.stringify(cfg));
-    // Trigger React re-render by reloading the iframe
-    iframe.contentWindow.location.reload();
-  } catch(e) {
-    iframe.src = iframe.src; // fallback reload
-  }
+  iframe.src = 'index.html';
   toast('✓ Applied — preview reloading…');
 }
 
 // ── Reset ─────────────────────────────────────────────────────────────────
 function resetChanges() {
   cfg = JSON.parse(JSON.stringify(window.FORM_CONFIG));
+  localStorage.removeItem('kimani_config_override');
   buildEditor();
   document.getElementById('preview').src = 'index.html';
   toast('↺ Reset to original config');
