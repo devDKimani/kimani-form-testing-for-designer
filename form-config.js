@@ -60,26 +60,27 @@ window.FORM_CONFIG = {
       hint:        'Type your number with country code (e.g. +1 for US, +44 for UK)',
     },
 
-    // 4 · Date of Birth ──────────────────────────────────────────────────────
+    // 4 · Date of Birth + Age Group ─────────────────────────────────────────
     {
-      key:   'dob',
-      title: 'Date of Birth',
-      label: 'Date of Birth',
-      placeholderMonth: 'Month',
-      placeholderDay:   'Day',
-    },
-
-    // 5 · Age Group ──────────────────────────────────────────────────────────
-    {
-      key:   'ageGroup',
-      title: 'Age Group',
-      options: [
-        '18 to 25',
-        '26 to 35',
-        '36 to 45',
-        '46 to 55',
-        '56 and above',
-      ],
+      key:   'dobAge',
+      title: 'Date of Birth & Age',
+      // Date of birth fields
+      dob: {
+        label:            'Date of Birth',
+        placeholderMonth: 'Month',
+        placeholderDay:   'Day',
+      },
+      // Age group options
+      ageGroup: {
+        title:   'Age Group',
+        options: [
+          '18 to 25',
+          '26 to 35',
+          '36 to 45',
+          '46 to 55',
+          '56 and above',
+        ],
+      },
     },
 
     // 6 · Occupation ─────────────────────────────────────────────────────────

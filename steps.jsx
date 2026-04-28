@@ -146,102 +146,213 @@ function Card({ children, style }) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Phone — auto-detect country code
+// Phone — same mechanic as Kimani-Frontend (libphonenumber-js)
+// Stores: { country: "+1", number: "6454446116" }
 // ──────────────────────────────────────────────────────────────
-const CALLING_CODES = [
-  { code: '+1',   flag: '🇺🇸', name: 'US / CA' },
-  { code: '+44',  flag: '🇬🇧', name: 'UK' },
-  { code: '+61',  flag: '🇦🇺', name: 'AU' },
-  { code: '+49',  flag: '🇩🇪', name: 'DE' },
-  { code: '+33',  flag: '🇫🇷', name: 'FR' },
-  { code: '+34',  flag: '🇪🇸', name: 'ES' },
-  { code: '+39',  flag: '🇮🇹', name: 'IT' },
-  { code: '+55',  flag: '🇧🇷', name: 'BR' },
-  { code: '+52',  flag: '🇲🇽', name: 'MX' },
-  { code: '+81',  flag: '🇯🇵', name: 'JP' },
-  { code: '+82',  flag: '🇰🇷', name: 'KR' },
-  { code: '+86',  flag: '🇨🇳', name: 'CN' },
-  { code: '+91',  flag: '🇮🇳', name: 'IN' },
-  { code: '+971', flag: '🇦🇪', name: 'UAE' },
-  { code: '+966', flag: '🇸🇦', name: 'SA' },
-  { code: '+27',  flag: '🇿🇦', name: 'ZA' },
-  { code: '+234', flag: '🇳🇬', name: 'NG' },
-  { code: '+254', flag: '🇰🇪', name: 'KE' },
-  { code: '+20',  flag: '🇪🇬', name: 'EG' },
-  { code: '+7',   flag: '🇷🇺', name: 'RU' },
-  { code: '+65',  flag: '🇸🇬', name: 'SG' },
-  { code: '+60',  flag: '🇲🇾', name: 'MY' },
-  { code: '+66',  flag: '🇹🇭', name: 'TH' },
-  { code: '+64',  flag: '🇳🇿', name: 'NZ' },
-  { code: '+31',  flag: '🇳🇱', name: 'NL' },
-  { code: '+46',  flag: '🇸🇪', name: 'SE' },
-  { code: '+47',  flag: '🇳🇴', name: 'NO' },
-  { code: '+45',  flag: '🇩🇰', name: 'DK' },
-  { code: '+41',  flag: '🇨🇭', name: 'CH' },
-  { code: '+43',  flag: '🇦🇹', name: 'AT' },
-  { code: '+32',  flag: '🇧🇪', name: 'BE' },
-  { code: '+351', flag: '🇵🇹', name: 'PT' },
-  { code: '+30',  flag: '🇬🇷', name: 'GR' },
-  { code: '+48',  flag: '🇵🇱', name: 'PL' },
-  { code: '+380', flag: '🇺🇦', name: 'UA' },
-  { code: '+90',  flag: '🇹🇷', name: 'TR' },
-  { code: '+972', flag: '🇮🇱', name: 'IL' },
-  { code: '+62',  flag: '🇮🇩', name: 'ID' },
-  { code: '+63',  flag: '🇵🇭', name: 'PH' },
-  { code: '+84',  flag: '🇻🇳', name: 'VN' },
-  { code: '+56',  flag: '🇨🇱', name: 'CL' },
-  { code: '+57',  flag: '🇨🇴', name: 'CO' },
-  { code: '+54',  flag: '🇦🇷', name: 'AR' },
-  { code: '+51',  flag: '🇵🇪', name: 'PE' },
-];
 
-function detectCallingCode(value) {
-  if (!value.startsWith('+')) return null;
-  return [...CALLING_CODES]
-    .sort((a, b) => b.code.length - a.code.length)
-    .find(c => value.startsWith(c.code)) || null;
+// Flag emoji from ISO-2 code (e.g. "US" → 🇺🇸)
+function isoToFlag(iso) {
+  return iso.toUpperCase().split('').map(c =>
+    String.fromCodePoint(c.charCodeAt(0) + 0x1F1A5)
+  ).join('');
 }
 
-function PhoneField({ value, onChange }) {
-  const [focus, setFocus] = React.useState(false);
-  const detected = detectCallingCode(value || '');
-  const cfg = stepCfg('phone');
+const COUNTRIES = [
+  ['US','United States','+1'],['GB','United Kingdom','+44'],['CA','Canada','+1'],
+  ['AU','Australia','+61'],['DE','Germany','+49'],['FR','France','+33'],
+  ['ES','Spain','+34'],['IT','Italy','+39'],['BR','Brazil','+55'],
+  ['MX','Mexico','+52'],['JP','Japan','+81'],['KR','South Korea','+82'],
+  ['CN','China','+86'],['IN','India','+91'],['AE','UAE','+971'],
+  ['SA','Saudi Arabia','+966'],['ZA','South Africa','+27'],['NG','Nigeria','+234'],
+  ['KE','Kenya','+254'],['EG','Egypt','+20'],['RU','Russia','+7'],
+  ['SG','Singapore','+65'],['MY','Malaysia','+60'],['TH','Thailand','+66'],
+  ['NZ','New Zealand','+64'],['NL','Netherlands','+31'],['SE','Sweden','+46'],
+  ['NO','Norway','+47'],['DK','Denmark','+45'],['CH','Switzerland','+41'],
+  ['AT','Austria','+43'],['BE','Belgium','+32'],['PT','Portugal','+351'],
+  ['GR','Greece','+30'],['PL','Poland','+48'],['UA','Ukraine','+380'],
+  ['TR','Turkey','+90'],['IL','Israel','+972'],['ID','Indonesia','+62'],
+  ['PH','Philippines','+63'],['VN','Vietnam','+84'],['CL','Chile','+56'],
+  ['CO','Colombia','+57'],['AR','Argentina','+54'],['PE','Peru','+51'],
+  ['VE','Venezuela','+58'],['PK','Pakistan','+92'],['BD','Bangladesh','+880'],
+  ['GH','Ghana','+233'],['TZ','Tanzania','+255'],['ET','Ethiopia','+251'],
+].map(([iso, name, dial]) => ({ iso, name, dial, flag: isoToFlag(iso) }));
+
+function PhoneInput({ value, onChange }) {
+  // value shape: { country: "+1", number: "6454446116" }
+  const [selectedCountry, setSelectedCountry] = React.useState(
+    COUNTRIES.find(c => c.iso === 'US')
+  );
+  const [numberInput, setNumberInput] = React.useState(value?.number || '');
+  const [dropOpen, setDropOpen] = React.useState(false);
+  const [search, setSearch] = React.useState('');
+  const [valid, setValid] = React.useState(null); // null | true | false
+  const [focusNum, setFocusNum] = React.useState(false);
+  const dropRef = React.useRef();
+  const lib = window.libphonenumber;
+
+  // Close dropdown on outside click
+  React.useEffect(() => {
+    const h = e => { if (dropRef.current && !dropRef.current.contains(e.target)) setDropOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  // Sync external value → local state (e.g. on reset)
+  React.useEffect(() => {
+    if (!value?.number && numberInput) { setNumberInput(''); setValid(null); }
+  }, [value]);
+
+  const filtered = search
+    ? COUNTRIES.filter(c =>
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.dial.includes(search) ||
+        c.iso.toLowerCase().includes(search.toLowerCase())
+      )
+    : COUNTRIES;
+
+  const handleNumberChange = (raw) => {
+    setNumberInput(raw);
+    if (!raw) { setValid(null); onChange({ country: selectedCountry.dial, number: '' }); return; }
+
+    const full = selectedCountry.dial + raw.replace(/\s/g, '');
+    let isValid = null;
+    let national = raw.replace(/\s/g, '');
+
+    if (lib) {
+      try {
+        const parsed = lib.parsePhoneNumber(full);
+        if (parsed) {
+          isValid = lib.isValidPhoneNumber(full);
+          national = parsed.nationalNumber;
+        }
+      } catch(e) { isValid = false; }
+    }
+
+    setValid(isValid);
+    onChange({ country: selectedCountry.dial, number: national });
+  };
+
+  const handleCountrySelect = (c) => {
+    setSelectedCountry(c);
+    setDropOpen(false);
+    setSearch('');
+    // Re-validate with new country
+    if (numberInput) {
+      const full = c.dial + numberInput.replace(/\s/g, '');
+      if (lib) {
+        try { setValid(lib.isValidPhoneNumber(full)); } catch(e) { setValid(false); }
+      }
+      onChange({ country: c.dial, number: numberInput.replace(/\s/g, '') });
+    }
+  };
+
+  const borderColor = valid === true
+    ? '#6FCF8A'
+    : valid === false && numberInput
+    ? '#F28B82'
+    : focusNum ? FIELD_BORDER_FOCUS : FIELD_BORDER;
+
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '12px 12px',
-          background: FIELD_BG, border: `1px solid ${FIELD_BORDER}`,
-          borderRadius: 10, fontSize: 14,
-          color: detected ? '#fff' : HINT, minWidth: 72, flexShrink: 0,
-        }}>
-          {detected
-            ? <><span style={{ fontSize: 18 }}>{detected.flag}</span><span>{detected.code}</span></>
-            : <span style={{ fontSize: 12, textAlign: 'center' }}>+code</span>
-          }
-        </div>
-        <div style={{ flex: 1 }}>
-          <input
-            type="tel"
-            value={value || ''}
-            onChange={e => onChange(e.target.value)}
-            placeholder={cfg.placeholder || '+1 645 444 6116'}
-            onFocus={() => setFocus(true)}
-            onBlur={() => setFocus(false)}
+      <div style={{ display: 'flex', gap: 8 }}>
+        {/* Country selector */}
+        <div ref={dropRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => setDropOpen(o => !o)}
             style={{
-              width: '100%', boxSizing: 'border-box',
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '12px 10px', height: '100%',
               background: FIELD_BG,
-              border: `1px solid ${focus ? FIELD_BORDER_FOCUS : FIELD_BORDER}`,
-              borderRadius: 10, padding: '12px 14px',
-              color: '#fff', fontSize: 15, fontFamily: 'inherit',
-              outline: 'none', transition: 'border-color 150ms ease',
+              border: `1px solid ${dropOpen ? FIELD_BORDER_FOCUS : FIELD_BORDER}`,
+              borderRadius: 10, cursor: 'pointer', color: '#fff',
+              fontSize: 14, fontFamily: 'inherit', whiteSpace: 'nowrap',
             }}
-          />
+          >
+            <span style={{ fontSize: 18 }}>{selectedCountry.flag}</span>
+            <span style={{ color: LABEL }}>{selectedCountry.dial}</span>
+            <svg width="10" height="6" viewBox="0 0 10 6" style={{ transform: dropOpen ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}>
+              <path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+            </svg>
+          </button>
+
+          {dropOpen && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+              width: 260, background: '#1a1a1a',
+              border: `1px solid ${FIELD_BORDER}`, borderRadius: 10,
+              zIndex: 50, boxShadow: '0 12px 32px rgba(0,0,0,0.7)',
+              overflow: 'hidden',
+            }}>
+              {/* Search */}
+              <div style={{ padding: '10px 12px', borderBottom: `1px solid ${FIELD_BORDER}` }}>
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search country…"
+                  style={{
+                    width: '100%', background: 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${FIELD_BORDER}`, borderRadius: 7,
+                    padding: '8px 10px', color: '#fff', fontSize: 13,
+                    fontFamily: 'inherit', outline: 'none',
+                  }}
+                />
+              </div>
+              {/* List */}
+              <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                {filtered.map(c => (
+                  <div
+                    key={c.iso}
+                    onClick={() => handleCountrySelect(c)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 14px', cursor: 'pointer',
+                      background: c.iso === selectedCountry.iso ? 'rgba(255,255,255,0.07)' : 'transparent',
+                      borderBottom: `1px solid rgba(255,255,255,0.03)`,
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseLeave={e => e.currentTarget.style.background = c.iso === selectedCountry.iso ? 'rgba(255,255,255,0.07)' : 'transparent'}
+                  >
+                    <span style={{ fontSize: 18 }}>{c.flag}</span>
+                    <span style={{ flex: 1, fontSize: 13, color: '#fff' }}>{c.name}</span>
+                    <span style={{ fontSize: 12, color: HINT }}>{c.dial}</span>
+                  </div>
+                ))}
+                {filtered.length === 0 && (
+                  <div style={{ padding: '16px', fontSize: 13, color: HINT, textAlign: 'center' }}>No results</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Number input */}
+        <input
+          type="tel"
+          value={numberInput}
+          onChange={e => handleNumberChange(e.target.value)}
+          placeholder="645 444 6116"
+          onFocus={() => setFocusNum(true)}
+          onBlur={() => setFocusNum(false)}
+          style={{
+            flex: 1, background: FIELD_BG,
+            border: `1px solid ${borderColor}`,
+            borderRadius: 10, padding: '12px 14px',
+            color: '#fff', fontSize: 15, fontFamily: 'inherit',
+            outline: 'none', transition: 'border-color 150ms ease',
+          }}
+        />
       </div>
-      <div style={{ fontSize: 11.5, color: HINT, marginTop: 6 }}>
-        {cfg.hint || 'Type your number with country code'}
+
+      {/* Validation feedback */}
+      <div style={{ fontSize: 11.5, marginTop: 6, color: valid === true ? '#6FCF8A' : valid === false && numberInput ? '#F28B82' : HINT }}>
+        {valid === true
+          ? `✓ Valid number · ${selectedCountry.name} (${selectedCountry.dial})`
+          : valid === false && numberInput
+          ? '✗ Invalid number for this country'
+          : 'Select your country then enter your number'
+        }
       </div>
     </div>
   );
@@ -294,58 +405,57 @@ function StepGender({ data, setData, accent }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// STEP 3 — Phone Number
+// STEP 3 — Phone Number  (mechanics = Kimani-Frontend)
 // ══════════════════════════════════════════════════════════════
 function StepPhone({ data, setData }) {
   const cfg = stepCfg('phone');
+  // data.phone shape: { country: "+1", number: "6454446116" }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <Card>
         <Label required>{cfg.label || 'Phone Number'}</Label>
-        <PhoneField value={(data.phone || {}).value} onChange={v => setData({ ...data, phone: { value: v } })} />
+        <PhoneInput
+          value={data.phone || {}}
+          onChange={v => setData({ ...data, phone: v })}
+        />
       </Card>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════
-// STEP 4 — Date of Birth
+// STEP 4 — Date of Birth + Age Group (merged)
 // ══════════════════════════════════════════════════════════════
-function StepDOB({ data, setData }) {
-  const d = data.dob || {};
-  const set = (k, v) => setData({ ...data, dob: { ...d, [k]: v } });
-  const cfg = stepCfg('dob');
+function StepDOBAge({ data, setData, accent }) {
+  const dob = data.dob || {};
+  const setDob = (k, v) => setData({ ...data, dob: { ...dob, [k]: v } });
+  const cfgDob = stepCfg('dob');
+  const cfgAge = stepCfg('ageGroup');
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
+  const ageOpts = cfgAge.options || ['18 to 25','26 to 35','36 to 45','46 to 55','56 and above'];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <Card>
-        <Label required>{cfg.label || 'Date of Birth'}</Label>
+        <Label required>{cfgDob.label || 'Date of Birth'}</Label>
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 2 }}>
-            <Select value={d.month} onChange={v => set('month', v)} options={months} placeholder={cfg.placeholderMonth || 'Month'} />
+            <Select value={dob.month} onChange={v => setDob('month', v)} options={months} placeholder={cfgDob.placeholderMonth || 'Month'} />
           </div>
           <div style={{ flex: 1 }}>
-            <Select value={d.day} onChange={v => set('day', v)} options={days} placeholder={cfg.placeholderDay || 'Day'} />
+            <Select value={dob.day} onChange={v => setDob('day', v)} options={days} placeholder={cfgDob.placeholderDay || 'Day'} />
           </div>
         </div>
       </Card>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════
-// STEP 5 — Age Group
-// ══════════════════════════════════════════════════════════════
-function StepAgeGroup({ data, setData, accent }) {
-  const d = data.ageGroup || {};
-  const cfg = stepCfg('ageGroup');
-  const opts = cfg.options || ['18 to 25', '26 to 35', '36 to 45', '46 to 55', '56 and above'];
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <Card>
-        {opts.map(opt => (
-          <Radio key={opt} accent={accent} checked={d.value === opt} onSelect={() => setData({ ...data, ageGroup: { value: opt } })} label={opt} />
+        <Label required>{cfgAge.title || 'Age Group'}</Label>
+        {ageOpts.map(opt => (
+          <Radio
+            key={opt} accent={accent}
+            checked={(data.ageGroup || {}).value === opt}
+            onSelect={() => setData({ ...data, ageGroup: { value: opt } })}
+            label={opt}
+          />
         ))}
       </Card>
     </div>
@@ -661,7 +771,7 @@ function StepSuccess({ data, accent }) {
 }
 
 Object.assign(window, {
-  StepName, StepGender, StepPhone, StepDOB, StepAgeGroup,
+  StepName, StepGender, StepPhone, StepDOBAge,
   StepOccupation, StepWorkType, StepCountry, StepSocial,
   StepProfilePic, StepExpertise, StepSuccess,
 });

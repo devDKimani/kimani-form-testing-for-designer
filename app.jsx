@@ -10,17 +10,16 @@
 })();
 
 const STEPS = [
-  { key: 'name',       title: 'Your Name',        comp: 'StepName' },
-  { key: 'gender',     title: 'Gender',            comp: 'StepGender' },
-  { key: 'phone',      title: 'Phone Number',      comp: 'StepPhone' },
-  { key: 'dob',        title: 'Date of Birth',     comp: 'StepDOB' },
-  { key: 'ageGroup',   title: 'Age Group',         comp: 'StepAgeGroup' },
-  { key: 'occupation', title: 'Occupation',        comp: 'StepOccupation' },
-  { key: 'workType',   title: 'Work Type',         comp: 'StepWorkType' },
-  { key: 'country',    title: 'Country',           comp: 'StepCountry' },
-  { key: 'social',     title: 'Social Media',      comp: 'StepSocial' },
-  { key: 'profilePic', title: 'Profile Picture',   comp: 'StepProfilePic' },
-  { key: 'expertise',  title: 'Your Passion',      comp: 'StepExpertise' },
+  { key: 'name',       title: 'Your Name',              comp: 'StepName' },
+  { key: 'gender',     title: 'Gender',                 comp: 'StepGender' },
+  { key: 'phone',      title: 'Phone Number',           comp: 'StepPhone' },
+  { key: 'dobAge',     title: 'Date of Birth & Age',    comp: 'StepDOBAge' },
+  { key: 'occupation', title: 'Occupation',             comp: 'StepOccupation' },
+  { key: 'workType',   title: 'Work Type',              comp: 'StepWorkType' },
+  { key: 'country',    title: 'Country',                comp: 'StepCountry' },
+  { key: 'social',     title: 'Social Media',           comp: 'StepSocial' },
+  { key: 'profilePic', title: 'Profile Picture',        comp: 'StepProfilePic' },
+  { key: 'expertise',  title: 'Your Passion',           comp: 'StepExpertise' },
 ];
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
@@ -208,9 +207,8 @@ function App() {
     switch (STEPS[step]?.key) {
       case 'name':       return data.name?.first && data.name?.last;
       case 'gender':     return !!data.gender?.value;
-      case 'phone':      return !!data.phone?.value;
-      case 'dob':        return data.dob?.month && data.dob?.day;
-      case 'ageGroup':   return !!data.ageGroup?.value;
+      case 'phone':      return !!(data.phone?.number);
+      case 'dobAge':     return data.dob?.month && data.dob?.day && !!data.ageGroup?.value;
       case 'occupation': return !!data.occupation?.value;
       case 'workType':   return !!data.workType?.status;
       case 'country':    return !!data.country?.value;
